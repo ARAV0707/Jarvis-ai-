@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JARVIS AI</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#020914;color:#65dfff;
+ font-family:Arial,sans-serif;text-align:center;
+ min-height:100vh;padding:25px 15px;
+}
+h1{letter-spacing:9px;font-size:34px;text-shadow:0 0 20px #00bfff}
+.sub{letter-spacing:4px;color:#3988aa;font-size:11px}
+.arc{
+ width:210px;height:210px;border-radius:50%;
+ border:3px solid #18bfff;
+ margin:35px auto 20px;
+ display:flex;align-items:center;justify-content:center;
+ box-shadow:0 0 20px #008cff,inset 0 0 25px #0077bb;
+ animation:pulse 3s infinite;
+}
+.core{
+ width:115px;height:115px;border-radius:50%;
+ border:2px solid #8aeaff;
+ display:flex;align-items:center;justify-content:center;
+ font-size:34px;box-shadow:0 0 25px #00bfff;
+}
+@keyframes pulse{
+ 50%{box-shadow:0 0 40px #00bfff,inset 0 0 35px #0077bb}
+}
+.status{color:#8aeaff;font-size:13px;margin:20px}
+.panel{
+ max-width:500px;margin:20px auto;
+ border:1px solid #0877a8;border-radius:12px;
+ padding:18px;background:#061827;
+}
+button{
+ background:#073b59;color:#83eaff;
+ border:1px solid #16bfff;border-radius:8px;
+ padding:13px 18px;margin:5px;cursor:pointer;
+}
+input{
+ width:70%;padding:13px;background:#020d19;
+ border:1px solid #168bb8;color:white;border-radius:8px;
+}
+#response{color:#fff;min-height:35px;margin-top:15px}
+</style>
+</head>
+<body>
+<h1>J.A.R.V.I.S</h1>
+<div class="sub">JUST A RATHER VERY INTELLIGENT SYSTEM</div>
+
+<div class="arc">
+ <div class="core">✦</div>
+</div>
+
+<div class="status" id="status">SYSTEM ONLINE</div>
+
+<div class="panel">
+ <h3>PERSONAL AI ASSISTANT</h3>
+ <input id="message" placeholder="Talk to JARVIS...">
+ <button onclick="send()">SEND</button>
+ <div id="response">Good day. JARVIS systems are ready.</div>
+ <button onclick="listen()">🎙 VOICE INPUT</button>
+ <button onclick="speak()">🔊 SPEAK</button>
+</div>
+
+<div class="sub">JARVIS CORE SYSTEMS · VERSION 1.0</div>
+
+<script>
+let lastResponse="Hello. I am JARVIS.";
+function send(){
+ let msg=document.getElementById("message").value.trim();
+ if(!msg)return;
+ let answer="I received your message: "+msg+
+ ". My AI intelligence connection is not configured yet.";
+ lastResponse=answer;
+ document.getElementById("response").textContent=answer;
+}
+function speak(){
+ if("speechSynthesis" in window){
+ speechSynthesis.cancel();
+ speechSynthesis.speak(new SpeechSynthesisUtterance(lastResponse));
+ }
+}
+function listen(){
+ const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!Speech){
+ document.getElementById("status").textContent="VOICE INPUT NOT SUPPORTED";
+ return;
+ }
+ const recognition=new Speech();
+ recognition.lang="en-IN";
+ recognition.onstart=()=>document.getElementById("status").textContent="LISTENING...";
+ recognition.onresult=(e)=>{
+ document.getElementById("message").value=e.results[0][0].transcript;
+ send();
+ };
+ recognition.onend=()=>document.getElementById("status").textContent="SYSTEM ONLINE";
+ recognition.start();
+}
+</script>
+</body>
+</html>
