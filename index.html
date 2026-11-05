@@ -1,82 +1,144 @@
 
-<script>
-let lastResponse = "Hello. I am JARVIS.";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JARVIS 2.0</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #07111f;
+      color: #65d9ff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    main {
+      width: 90%;
+      max-width: 500px;
+      text-align: center;
+    }
+    h1 { letter-spacing: 5px; }
+    #status { color: #75ffb2; margin: 20px; }
+    input {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #65d9ff;
+      background: #102238;
+      color: white;
+      font-size: 16px;
+    }
+    button {
+      margin: 8px 3px;
+      padding: 12px 18px;
+      border: 1px solid #65d9ff;
+      border-radius: 8px;
+      background: #102e48;
+      color: #65d9ff;
+      font-size: 15px;
+    }
+    #response {
+      margin-top: 25px;
+      padding: 18px;
+      min-height: 80px;
+      background: #102238;
+      border-radius: 10px;
+      color: white;
+      white-space: pre-wrap;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>JARVIS 2.0</h1>
+    <p>PERSONAL AI ASSISTANT</p>
+    <div id="status">SYSTEM ONLINE</div>
 
-async function send() {
-  const input = document.getElementById("message");
-  const responseBox = document.getElementById("response");
-  const status = document.getElementById("status");
+    <input id="message" placeholder="Ask JARVIS anything...">
 
-  const msg = input.value.trim();
-  if (!msg) return;
+    <button onclick="send()">SEND</button>
+    <button onclick="listen()">VOICE INPUT</button>
+    <button onclick="speak()">SPEAK</button>
 
-  responseBox.textContent = "JARVIS is thinking...";
-  status.textContent = "CONNECTING TO AI...";
+    <div id="response">Hello. I am JARVIS. How can I help you?</div>
+  </main>
 
-  try {
-    const response = await fetch("/.netlify/functions/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ message: msg })
-    });
+  <script>
+    let lastResponse = "Hello. I am JARVIS.";
 
-    const data = await response.json();
+    async function send() {
+      const input = document.getElementById("message");
+      const responseBox = document.getElementById("response");
+      const status = document.getElementById("status");
+      const msg = input.value.trim();
 
-    if (!response.ok) {
-      throw new Error(data.error || "AI connection failed");
+      if (!msg) return;
+
+      responseBox.textContent = "JARVIS is thinking...";
+      status.textContent = "CONNECTING TO AI...";
+
+      try {
+        const response = await fetch("/.netlify/functions/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: msg })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "AI connection failed");
+        }
+
+        lastResponse = data.reply;
+        responseBox.textContent = lastResponse;
+        status.textContent = "JARVIS AI ONLINE";
+      } catch (error) {
+        responseBox.textContent = "Connection error: " + error.message;
+        status.textContent = "CONNECTION ERROR";
+      }
     }
 
-    lastResponse = data.reply;
-    responseBox.textContent = lastResponse;
-    status.textContent = "JARVIS AI ONLINE";
+    function speak() {
+      if ("speechSynthesis" in window) {
+        speechSynthesis.cancel();
+        speechSynthesis.speak(
+          new SpeechSynthesisUtterance(lastResponse)
+        );
+      }
+    }
 
-  } catch (error) {
-    responseBox.textContent = "Connection error: " + error.message;
-    status.textContent = "CONNECTION ERROR";
-  }
-}
+    function listen() {
+      const Speech = window.SpeechRecognition ||
+                     window.webkitSpeechRecognition;
 
-function speak() {
-  if ("speechSynthesis" in window) {
-    speechSynthesis.cancel();
-    speechSynthesis.speak(
-      new SpeechSynthesisUtterance(lastResponse)
-    );
-  }
-}
+      if (!Speech) {
+        document.getElementById("status").textContent =
+          "VOICE INPUT NOT SUPPORTED";
+        return;
+      }
 
-function listen() {
-  const Speech =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
+      const recognition = new Speech();
+      recognition.lang = "en-IN";
 
-  if (!Speech) {
-    document.getElementById("status").textContent =
-      "VOICE INPUT NOT SUPPORTED";
-    return;
-  }
+      recognition.onstart = () => {
+        document.getElementById("status").textContent = "LISTENING...";
+      };
 
-  const recognition = new Speech();
-  recognition.lang = "en-IN";
+      recognition.onresult = (e) => {
+        document.getElementById("message").value =
+          e.results[0][0].transcript;
+        send();
+      };
 
-  recognition.onstart = () => {
-    document.getElementById("status").textContent =
-      "LISTENING...";
-  };
-
-  recognition.onresult = (e) => {
-    document.getElementById("message").value =
-      e.results[0][0].transcript;
-    send();
-  };
-
-  recognition.onend = () => {
-    document.getElementById("status").textContent =
-      "SYSTEM ONLINE";
-  };
-
-  recognition.start();
-}
-</script>
+      recognition.start();
+    }
+  </script>
+</body>
+</html>
