@@ -8,6 +8,7 @@ exports.handler = async (event) => {
 
   try {
     const { message } = JSON.parse(event.body || "{}");
+    const apiKey = process.env.GEMINI_API_KEY;
 
     if (!message) {
       return {
@@ -16,38 +17,38 @@ exports.handler = async (event) => {
       };
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-
     if (!apiKey) {
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: "AI connection is not configured." })
+        body: JSON.stringify({ error: "Gemini API key is missing" })
       };
     }
 
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4.1-mini",
-        input: message
-      })
-    });
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: message }]
+          }]
+        })
+      }
+    );
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error?.message || "AI request failed");
+      throw new Error(data.error?.message || "Gemini request failed");
     }
 
-    const answer = data.output
-      ?.flatMap(item => item.content || [])
-      .filter(item => item.type === "output_text")
-      .map(item => item.text)
-      .join("\n") || "I couldn't generate a response.";
+    const answer =
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "I couldn't generate a response.";
 
     return {
       statusCode: 200,
