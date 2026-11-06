@@ -8,7 +8,11 @@ exports.handler = async (event) => {
 
   try {
     const { message } = JSON.parse(event.body || "{}");
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+      throw new Error("OpenAI API key is missing");
+    }
 
     if (!message) {
       return {
@@ -17,25 +21,17 @@ exports.handler = async (event) => {
       };
     }
 
-    if (!apiKey) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "Gemini API key is missing" })
-      };
-    }
-
     const response = await fetch(
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
+      "https://api.openai.com/v1/responses",
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-goog-api-key": apiKey
+          "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [{ text: message }]
-          }]
+          model: "gpt-4.1-mini",
+          input: message
         })
       }
     );
@@ -43,22 +39,31 @@ exports.handler = async (event) => {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error?.message || "Gemini request failed");
+      return {
+        statusCode: response.status,
+        body: JSON.stringify({
+          error: data.error?.message || "OpenAI request failed"
+        })
+      };
     }
 
-    const answer =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "I couldn't generate a response.";
+    const reply = (data.output || [])
+      .flatMap(item => item.content || [])
+      .filter(item => item.type === "output_text")
+      .map(item => item.text)
+      .join("");
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ reply: answer })
+      body: JSON.stringify({ reply })
     };
 
   } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({
+        error: error.message || "Server error"
+      })
     };
   }
 };
